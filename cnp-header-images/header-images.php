@@ -1,4 +1,4 @@
-<? 
+<?
 /*
 
 Plugin Name: CNP Header Images
@@ -29,22 +29,25 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 add_action('init', 'cnp_header_images');
 
 function cnp_header_images() {
-	register_taxonomy('headerimages', 'attachment', array(
-		'labels' => array(
-			'name'          => 'Header Images'
-		,	'singular_name' => 'Header Image'
-		,	'search_items'  => 'Search Header Images'
-		,	'edit_item'     => 'Edit Header Image'
-		,	'add_new_item'  => 'Add New Header Image'
+	register_taxonomy(
+		'headerimages',
+		'attachment',
+		array(
+			'labels' => array(
+				'name'          => 'Header Images'
+			,	'singular_name' => 'Header Image'
+			,	'search_items'  => 'Search Header Images'
+			,	'edit_item'     => 'Edit Header Image'
+			,	'add_new_item'  => 'Add New Header Image'
 		)
 	,	'hierarchical' => true
 	,	'query_var'    => true
 	,	'rewrite'      => false
 	)); // header_images
 
-	if (!term_exists('general-rotation', 'headerimages')) {
+	if ( !term_exists('general-rotation', 'headerimages') ) {
 		wp_insert_term(
-			'General Rotation', // the term 
+			'General Rotation', // the term
 			'headerimages', // the taxonomy
 			array('slug' => 'general-rotation')
 		);
@@ -55,33 +58,29 @@ function cnp_header_images() {
 
 function add_headerimages_filters() {
 	global $pagenow;
- 
-	// an array of all the taxonomies you want to display. Use the taxonomy name or slug
-	$taxonomies = array('headerimages');
-	$tax_slug = 'headerimages';
- 
+
 	// must set this to the admin page you want the filter(s) displayed on
 	if( $pagenow == 'upload.php' ){
- 
-		foreach ($taxonomies as $tax_slug) {
-			$tax_obj = get_taxonomy($tax_slug);
-			$tax_name = $tax_obj->labels->name;
-			
-			$terms[] = get_term_by('slug', 'general-rotation', 'headerimages');
-			$all_pages = get_posts('numberposts=-1&post_type=page');
-			foreach ($all_pages as $page) {
-				if (term_exists($page->post_title, 'headerimages')) {
-					$terms[] = get_term_by('slug', $page->post_title, 'headerimages');
-				}
+
+		$tax_slug = 'headerimages';
+		$tax_obj  = get_taxonomy($tax_slug);
+		$tax_name = $tax_obj->labels->name;
+
+		$args = array(
+			'hide_empty' => false
+		);
+
+		$terms = get_terms( $tax_slug, $args );
+		?><!-- <? print_r($terms); ?> --><?
+
+		if ( count($terms) > 0 ) {
+			echo "<select name='$tax_slug' id='$tax_slug' class='postform'>";
+			echo "<option value=''>Show All $tax_name</option>";
+			foreach ($terms as $term) {
+				// $_GET[$tax_slug] == $term->slug ? ' selected="selected"' : ''
+				echo '<option value="'. $term->slug .'">' . $term->name .'</option>';
 			}
-			if(count($terms) > 0) {
-				echo "<select name='$tax_slug' id='$tax_slug' class='postform'>";
-				echo "<option value=''>Show All $tax_name</option>";
-				foreach ($terms as $term) { 
-					echo '<option value='. $term->slug, $_GET[$tax_slug] == $term->slug ? ' selected="selected"' : '','>' . $term->name .'</option>'; 
-				}
-				echo "</select>";
-			}
+			echo "</select>";
 		}
 	}
 }
@@ -89,39 +88,50 @@ add_action( 'restrict_manage_posts', 'add_headerimages_filters' );
 
 function get_header_images() {
 
-	global $post;
+	$object = get_queried_object();
+
+	if (is_page())
+		$slug = $object->post_name;
+
+	if ( is_post_type_archive() )
+		$slug = $object->name;
+
 	// First test: check the current page
 	$args = array(
-		'numberposts' 	=> -1,
+		'numberposts' 	=> 5,
 		'post_type'		=> 'attachment',
+		'orderby'       => 'rand',
 		'tax_query' => array(
 			array(
 				'taxonomy' => 'headerimages',
 				'field' => 'slug',
-				'terms' => $post->post_name
+				'terms' => $slug
 			)
-		)	
+		)
 	);
 
 	$sectionimages = get_posts($args);
-	
+
+	if (!empty($sectionimages))
+		return $sectionimages;
+
 	// Second test: if there aren't any defined for the current page, check any parent pages
-	$old_post = $post;
-	
-	while (!$sectionimages && $old_post->post_parent != 0) {
-		$current_post = get_post($old_post->post_parent);		
+	$old_post = $object->post_parent;
+
+	while (!$sectionimages && $old_post != 0) {
+		$current_post = get_post($old_post);
 		$args['tax_query'][0]['terms'] = $current_post->post_name;
 		$sectionimages = get_posts($args);
-		$old_post = $current_post;	
-	} 
-	
+		$old_post = $current_post;
+	}
+
 	// Third test: if there aren't ANY set, use the General Rotation
-	if (!$sectionimages && $old_post->post_parent == 0) {
-		
+	if (!$sectionimages && $old_post == 0) {
+
 		$args['tax_query'][0]['terms'] = 'general-rotation';
 		$sectionimages = get_posts($args);
 	}
-	
+
 	// Assuming you want them random, shuffle it up a bit
 	shuffle($sectionimages);
 
