@@ -116,13 +116,14 @@ function get_header_images() {
 		return $sectionimages;
 
 	// Second test: if there aren't any defined for the current page, check any parent pages
+	$old_post = 0;
 	$old_post = $object->post_parent;
 
 	while (!$sectionimages && $old_post != 0) {
 		$current_post = get_post($old_post);
 		$args['tax_query'][0]['terms'] = $current_post->post_name;
 		$sectionimages = get_posts($args);
-		$old_post = $current_post;
+		$old_post = $current_post->post_parent;
 	}
 
 	// Third test: if there aren't ANY set, use the General Rotation
@@ -130,6 +131,7 @@ function get_header_images() {
 
 		$args['tax_query'][0]['terms'] = 'general-rotation';
 		$sectionimages = get_posts($args);
+		
 	}
 
 	// Assuming you want them random, shuffle it up a bit
