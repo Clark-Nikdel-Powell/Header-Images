@@ -262,21 +262,22 @@ if (!empty($home_class)) {
 		$img_src_large = wp_get_attachment_image_src( $home_img_id[0], 'large' );
 		$img_src_med   = wp_get_attachment_image_src( $home_img_id[0], 'medium' );
 		$img_src_thumb = wp_get_attachment_image_src( $home_img_id[0], 'thumbnail' );
+	
+
+		if ($home_class == 'body') {
+			$selector = $home_class. '.'. $home_term->slug;
+		}
+
+		else {
+			$selector = '.'. $home_term->slug .' '. $home_class;
+		}
+
+		// Mobile first!
+		$output .= $selector .' {background-image:url('. $img_src_med[0] .')}';
+
+		// Larger size for desktop.
+		$output .= '@media (min-width: 900px) {'. $selector .' {background-image:url('. $img_src_large[0] .');}}';
 	}
-
-	if ($home_class == 'body') {
-		$selector = $home_class. '.'. $home_term->slug;
-	}
-
-	else {
-		$selector = '.'. $home_term->slug .' '. $home_class;
-	}
-
-	// Mobile first!
-	$output .= $selector .' {background-image:url('. $img_src_med[0] .')}';
-
-	// Larger size for desktop.
-	$output .= '@media (min-width: 900px) {'. $selector .' {background-image:url('. $img_src_large[0] .');}}';
 
 }
 
